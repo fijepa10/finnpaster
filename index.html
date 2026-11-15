@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>finn paster</title>
+  <meta name="description" content="Finn Paster — musician, film maker and designer from Nova Scotia. take more by angel overdose is out now.">
+  <meta name="theme-color" content="#000000">
+  <meta property="og:title" content="finn paster">
+  <meta property="og:description" content="Musician, film maker and designer from Nova Scotia.">
+  <meta property="og:image" content="images/take-more.jpg">
+  <link rel="preload" href="fonts/FinnHand.ttf?v=4" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="style.css?v=9">
+</head>
+<body>
+  <div class="top-back" aria-hidden="true"></div>
+  <canvas class="top-clean" aria-hidden="true"></canvas>
+  <canvas class="top-melt" aria-hidden="true"></canvas>
+  <nav class="nav">
+    <a href="#top" class="logo">finn paster</a>
+    <div class="nav-links">
+      <a href="#about">about</a>
+      <a href="#music">music</a>
+      <a href="#photos">photos</a>
+      <a href="#film">film</a>
+      <a href="#design">design</a>
+      <a href="#contact">contact</a>
+    </div>
+  </nav>
+
+  <!-- opening screen: just the name -->
+  <header class="intro" id="top">
+    <div class="intro-pin">
+      <div class="intro-text">
+        <h1>finn paster</h1>
+        <p>musician, film maker, designer, <span class="age">17</span>, Nova Scotia</p>
+      </div>
+      <canvas class="melt" aria-hidden="true"></canvas>
+      <span class="scroll-cue" aria-hidden="true">scroll</span>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- ABOUT -->
+    <section id="about" class="split">
+      <img class="portrait" src="images/finn-portrait.jpg" alt="finn playing guitar in red and purple light" width="1400" height="1400" decoding="async">
+      <div class="col">
+      <h2>about</h2>
+      <p class="lede">I'm Finn, a <span class="age">17</span> year old film maker, musician and designer.</p>
+      <p>I was born in Burbank, California, and now live in Nova Scotia. I'm part of the band Deer Jenny, make music as <a class="inline" href="#music">angel overdose</a>, and make films. My film <a class="inline" href="https://youtu.be/LYKM9yFYQ28" target="_blank" rel="noopener">See Me in the Stars</a> won the Atlantic International Film Festival for ages 18 and under, and I've been lucky enough to win Whitflix, a local film festival, a few times too.</p>
+      <p>I'm always working on new film and music projects, and I'm always looking for collaborations, so please <a class="inline" href="#contact">get in touch</a>!</p>
+      <p>My inspirations come from musicians like Elliott Smith, Iron &amp; Wine, Alex G, Greg Mendez and Coma Cinema, and film makers like Yorgos Lanthimos, Wes Anderson and Ari Aster.</p>
+      <div class="btns">
+        <a href="#music">listen to take more<span class="arr">→</span></a>
+        <a href="https://youtu.be/LYKM9yFYQ28" target="_blank" rel="noopener">watch the film<span class="arr up">↗</span></a>
+        <a href="#contact">get in touch<span class="arr">→</span></a>
+      </div>
+      </div>
+    </section>
+
+    <!-- MUSIC -->
+    <section id="music">
+      <div class="split">
+        <img class="cover" src="images/take-more.jpg" alt="album cover for take more by angel overdose" width="1000" height="1000">
+        <div class="col">
+          <h2>take more</h2>
+          <p class="lede">The first angel overdose album, made of songs written over many years of my life.</p>
+          <p>angel overdose is a lo-fi indie-folk project of mine. Thank you to everyone who inspired me to keep making it.</p>
+          <div class="btns">
+            <a href="https://angeloverdose.bandcamp.com/album/take-more" target="_blank" rel="noopener">bandcamp<span class="arr up">↗</span></a>
+            <a href="https://distrokid.com/hyperfollow/angeloverdose/take-more" target="_blank" rel="noopener">stream it anywhere<span class="arr up">↗</span></a>
+            <a href="https://www.instagram.com/angeloverdose.mp3/" target="_blank" rel="noopener">instagram<span class="arr up">↗</span></a>
+          </div>
+          <div class="song">
+            <button class="song-play" aria-label="play take more"><span class="i-play">▶</span><span class="i-pause" aria-hidden="true"><i></i><i></i></span></button>
+            <div class="song-main">
+              <div class="song-top"><span class="song-title">take more</span><span class="song-time">0:00 / 2:56</span></div>
+              <div class="song-bar" role="slider" tabindex="0" aria-label="seek" aria-valuemin="0" aria-valuemax="176" aria-valuenow="0"><div class="song-fill"></div></div>
+            </div>
+            <audio preload="metadata" src="audio/take-more.mp3"></audio>
+          </div>
+          <p class="note">The full album and CDs are on <a class="inline" href="https://angeloverdose.bandcamp.com/album/take-more" target="_blank" rel="noopener">Bandcamp</a>.</p>
+          <p class="note soon">Music video coming soon.</p>
+          <!-- MUSIC VIDEO: when it's ready, delete the "coming soon" line above and put this right
+               after the closing </div> of the .split below:
+               <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" title="angel overdose — music video"
+                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div> -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PHOTOS -->
+    <section id="photos">
+      <div class="head">
+        <h2>photos</h2>
+        <p>A mix of iPhone photos and 35mm film. Click one to see it full size.</p>
+      </div>
+      <div class="grid photo-grid">
+        <figure class="ph" style="--ar: 900 / 1200" data-cam="iPhone"><img src="images/photos/01.jpg" alt="photo by finn paster" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 900 / 1200" data-cam="iPhone"><img src="images/photos/49.jpg" alt="photo by finn paster" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1200 / 900" data-cam="iPhone"><img src="images/photos/05.jpg" alt="photo by finn paster" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1200 / 795" data-cam="35mm"><img src="images/photos/41.jpg" alt="photo by finn paster" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1200 / 900" data-cam="iPhone"><img src="images/photos/52.jpg" alt="photo by finn paster" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1200 / 1200" data-cam="iPhone"><img src="images/photos/48.jpg" alt="photo by finn paster" loading="lazy" decoding="async"></figure>
+      </div>
+      <div class="btns more-wrap"><a href="photos.html">see all photos<span class="arr">→</span></a></div>
+    </section>
+
+    <!-- FILM -->
+    <section id="film">
+      <div class="head">
+        <h2>see me in the stars</h2>
+        <p>A short film I made. It won the Atlantic International Film Festival for ages 18 and under. <a class="inline" href="https://youtu.be/LYKM9yFYQ28" target="_blank" rel="noopener">Watch it ↗</a></p>
+      </div>
+      <div class="grid">
+        <figure class="ph" style="--ar: 1600 / 1299"><img src="images/stills/stars-02.jpg" alt="still from see me in the stars: two silhouettes filled with stars" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1500 / 1125"><img src="images/stills/stars-08.jpg" alt="still from see me in the stars: two figures sitting in a field at dusk" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1500 / 1125"><img src="images/stills/stars-03.jpg" alt="still from see me in the stars: a flying saucer over two people in a clearing" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1500 / 1125"><img src="images/stills/stars-01.jpg" alt="still from see me in the stars: a figure in a tinfoil hat against the sunset" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1500 / 1125"><img src="images/stills/stars-05.jpg" alt="still from see me in the stars: two characters in close-up, one with green skin" loading="lazy" decoding="async"></figure>
+        <figure class="ph" style="--ar: 1500 / 1125"><img src="images/stills/stars-07.jpg" alt="still from see me in the stars: two people sitting by a pink door" loading="lazy" decoding="async"></figure>
+      </div>
+    </section>
+
+    <!-- DESIGN -->
+    <section id="design">
+      <div class="head">
+        <h2>design</h2>
+        <p>Things I design and build.</p>
+      </div>
+      <a class="project" href="altoids.html">
+        <div class="project-sketch">
+          <img src="images/design/altoids/sketch.png?v=2" alt="pencil plans for the altoid cyberdeck: the lid with the screen, the tray with the keyboard, the base plate layout and a parts list with sizes" width="2000" height="1446" loading="lazy" decoding="async">
+        </div>
+        <div class="project-text">
+          <h3>altoid cyberdeck</h3>
+          <p>A pocket computer built into an Altoids tin. These are the plans; the finished thing and how I built it are on its own page.</p>
+          <span class="project-more">see the build<span class="arr">→</span></span>
+        </div>
+      </a>
+    </section>
+
+    <!-- NEXT -->
+    <section id="next" class="split">
+      <img class="drawing" src="images/next-album-crash.png" alt="ink drawing of a car crashed nose-first under an exit sign" loading="lazy">
+      <div class="col">
+        <p class="lede">New album coming soon.</p>
+        <p>And a feature film called <span class="em">Silentium</span> is being written.</p>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact">
+      <h2>contact</h2>
+      <p class="email"><a class="inline" href="mailto:finnjp9@icloud.com">finnjp9@icloud.com</a></p>
+      <div class="links">
+        <a href="https://www.instagram.com/f_art_09/" target="_blank" rel="noopener">instagram<span class="arr up">↗</span></a>
+        <a href="https://www.instagram.com/angeloverdose.mp3/" target="_blank" rel="noopener">angel overdose<span class="arr up">↗</span></a>
+        <a href="https://angeloverdose.bandcamp.com" target="_blank" rel="noopener">bandcamp<span class="arr up">↗</span></a>
+      </div>
+    </section>
+
+    <footer class="footer">finn paster © 2026</footer>
+  </main>
+
+  <!-- full-size viewer -->
+  <div class="viewer" role="dialog" aria-modal="true" aria-label="photo viewer" hidden>
+    <img class="viewer-img" alt="">
+    <button class="v-close" aria-label="close">close</button>
+    <button class="v-prev" aria-label="previous photo">back</button>
+    <button class="v-next" aria-label="next photo">next</button>
+    <span class="v-count"></span>
+  </div>
+
+  <script src="main.js?v=18"></script>
+</body>
+</html>
