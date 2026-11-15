@@ -53,6 +53,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 /* only used off-screen as the source for the melt; the real page shows through the band's lower part */
 .top-back, .top-clean { display: none !important; }
+@media (hover: none), (max-width: 640px) { .top-melt { display: none; } }
 .top-melt { position: absolute; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; transition: opacity .5s var(--ease); }
 .top-melt.on { opacity: 1; }
 
@@ -238,6 +239,7 @@ h3.sub { margin-top: clamp(80px, 10vw, 130px); }
 /* phones */
 @media (max-width: 640px) {
   body { font-size: 19px; }
+  .sub-page .page { padding-top: 120px; }   /* no melting band on phones */
   .results { grid-template-columns: 1fr; }
   .project-shots { gap: 6px; }
   .shots { gap: 10px; }

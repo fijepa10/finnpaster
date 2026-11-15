@@ -334,7 +334,10 @@ const bandBottom = () => {
   const n = document.querySelector('.nav');
   return (n && n.classList.contains('show') ? n.getBoundingClientRect().height : 0) + topBandHeight();
 };
-const topBandHeight = () => Math.round(document.documentElement.clientHeight * (innerWidth <= 640 ? 0.07 : 0.12));
+// the melting band along the top only runs on computers: on phones and tablets it's too heavy to
+// keep up with fast (momentum) scrolling, and Safari moves the page before it can follow
+const touch = matchMedia('(hover: none)').matches || innerWidth <= 640;
+const topBandHeight = () => touch ? 0 : Math.round(document.documentElement.clientHeight * 0.12);
 {
   let q = false;
   const many = !!document.querySelector('.all-photos');
@@ -568,7 +571,7 @@ const melt = (() => {
   const back = document.querySelector('.top-back');
   const clean = document.querySelector('.top-clean');
   const c = document.querySelector('.top-melt');
-  if (!c || !clean || reduceMotion) return;
+  if (!c || !clean || reduceMotion || touch) return;   // computers only (see `touch` above)
   const ctx = c.getContext('2d');
   const cx = clean.getContext('2d');
   let D = 1;                                     // css px per dither dot (fine, so body text stays legible; snapped in build)
