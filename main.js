@@ -347,7 +347,16 @@ const topBandHeight = () => Math.round(document.documentElement.clientHeight * (
     // the all-photos page has lots of small photos, so there a whole middle stretch of the screen
     // lights up (several rows at once); elsewhere just the row nearest the middle
     const reach = many ? (bottom - top) * 0.3 : 0;
-    const on = new Set(seen.filter(([, d]) => d <= Math.max(bd + 40, reach)).map(([p]) => p));
+    let on = new Set(seen.filter(([, d]) => d <= Math.max(bd + 40, reach)).map(([p]) => p));
+    // phones (one photo per row): every photo that's at least half on screen turns to colour,
+    // and stays in colour until its top reaches the melting band (then it melts away as dots).
+    // That keeps each photo in colour for much longer while scrolling at a normal speed.
+    if (innerWidth <= 640) {
+      on = new Set(photos.filter(p => {
+        const r = p.fig.getBoundingClientRect();
+        return r.height && r.top >= top && Math.min(r.bottom, innerHeight) - r.top >= r.height * 0.5;
+      }));
+    }
     for (const p of photos) {
       const lit = on.has(p);
       if (lit !== p.lit) { p.lit = lit; p.update(); }
