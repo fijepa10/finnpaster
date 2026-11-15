@@ -99,13 +99,24 @@ const BAYER = (() => {
 const scratch = document.createElement('canvas');
 const sctx = scratch.getContext('2d', { willReadFrequently: true });
 
+// where to draw an image so it covers a w x h box (like CSS object-fit: cover), using only its
+// shape (width / height), which every browser reports correctly
+function coverRect(img, w, h) {
+  const ir = img.naturalWidth / img.naturalHeight, cr = w / h;
+  let dw = w, dh = h;
+  if (ir > cr) dw = h * ir; else dh = w / ir;
+  return { x: (w - dw) / 2, y: (h - dh) / 2, w: dw, h: dh };
+}
+
 // Atkinson dither of `img` (cover-fitted) into w x h black/white pixels
 function dither(img, w, h) {
   scratch.width = w; scratch.height = h;
-  const ir = img.naturalWidth / img.naturalHeight, cr = w / h;
-  let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0;
-  if (ir > cr) { sw = sh * cr; sx = (img.naturalWidth - sw) / 2; } else { sh = sw / cr; sy = (img.naturalHeight - sh) / 2; }
-  sctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  // draw the WHOLE photo scaled to cover the tile (centred, overflow cut off). Don't crop by
+  // source pixels: with two image sizes (srcset), Safari's naturalWidth isn't the file's real
+  // pixel size, so a source crop came out zoomed in.
+  const fit = coverRect(img, w, h);
+  sctx.clearRect(0, 0, w, h);
+  sctx.drawImage(img, fit.x, fit.y, fit.w, fit.h);
   const d = sctx.getImageData(0, 0, w, h).data;
   const L = new Float32Array(w * h), hist = new Uint32Array(256);
   for (let i = 0; i < L.length; i++) {
@@ -669,10 +680,12 @@ const melt = (() => {
   };
 
   const cover = (el, r) => {
-    const ir = el.naturalWidth / el.naturalHeight, cr = r.width / r.height;
-    let w = el.naturalWidth, h = el.naturalHeight, x0 = 0, y0 = 0;
-    if (ir > cr) { w = h * cr; x0 = (el.naturalWidth - w) / 2; } else { h = w / cr; y0 = (el.naturalHeight - h) / 2; }
-    cx.drawImage(el, x0, y0, w, h, r.left, r.top, r.width, r.height);
+    // the whole image scaled to cover its box, clipped to the box (same as on the page)
+    const fit = coverRect(el, r.width, r.height);
+    cx.save();
+    cx.beginPath(); cx.rect(r.left, r.top, r.width, r.height); cx.clip();
+    cx.drawImage(el, r.left + fit.x, r.top + fit.y, fit.w, fit.h);
+    cx.restore();
   };
 
   const band = { top: 0, bottom: 0 };
