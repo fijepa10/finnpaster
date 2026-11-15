@@ -38,7 +38,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transition: opacity .5s var(--ease), transform .5s var(--ease);
 }
 .nav.show { opacity: 1; transform: none; pointer-events: auto; }
-.logo { font-size: 23px; }
+.logo { font-size: 23px; white-space: nowrap; }
 .nav-links { display: flex; gap: clamp(14px, 3vw, 28px); color: var(--dim); }
 .nav-links a { transition: color .3s ease; }
 .nav-links a:hover, .nav-links a.on { color: var(--fg); }
@@ -252,7 +252,7 @@ h3.sub { margin-top: clamp(80px, 10vw, 130px); }
   .photo-grid .ph, .all-photos .ph { aspect-ratio: var(--ar, 4 / 3); grid-column: auto; grid-row: auto; }
   .photo-grid .ph:last-child:nth-child(odd), .all-photos .ph:last-child:nth-child(odd) { display: block; }
 }
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .logo { display: none; }
   .nav { justify-content: flex-end; }
   .nav-links { gap: 0; width: 100%; justify-content: space-between; font-size: 17px; }

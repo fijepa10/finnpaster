@@ -353,14 +353,19 @@ const topBandHeight = () => Math.round(document.documentElement.clientHeight * (
     // lights up (several rows at once); elsewhere just the row nearest the middle
     const reach = many ? (bottom - top) * 0.3 : 0;
     let on = new Set(seen.filter(([, d]) => d <= Math.max(bd + 40, reach)).map(([p]) => p));
-    // phones (one photo per row): every photo that's at least half on screen turns to colour,
-    // and stays in colour until its top reaches the melting band (then it melts away as dots).
-    // That keeps each photo in colour for much longer while scrolling at a normal speed.
+    // phones (one photo per row): the photo in the middle of the screen is in colour, always
+    // exactly one, so whatever you're looking at is in colour. (It melts away in its own colours
+    // at the top, so it doesn't need to turn back into dots first.)
     if (innerWidth <= 640) {
-      on = new Set(photos.filter(p => {
+      const mid = (bandBottom() + innerHeight) / 2;
+      let best = null, bd = Infinity;
+      for (const p of photos) {
         const r = p.fig.getBoundingClientRect();
-        return r.height && r.top >= top && Math.min(r.bottom, innerHeight) - r.top >= r.height * 0.5;
-      }));
+        if (!r.height || r.bottom < 0 || r.top > innerHeight) continue;
+        const d = mid < r.top ? r.top - mid : mid > r.bottom ? mid - r.bottom : 0;   // 0 = it covers the middle
+        if (d < bd) { bd = d; best = p; }
+      }
+      on = new Set(best && bd < innerHeight * 0.25 ? [best] : []);
     }
     for (const p of photos) {
       const lit = on.has(p);
@@ -459,13 +464,23 @@ const melt = (() => {
       o.font = `${cs.fontSize} "Finn Hand"`;
       o.fillStyle = cs.color;
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const m = o.measureText('Hg'), asc = m.fontBoundingBoxAscent, des = m.fontBoundingBoxDescent;
       for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-        rg.selectNodeContents(n);
-        const b = rg.getBoundingClientRect(), m = o.measureText(n.textContent);
-        // the text's box spans the font's ascent + descent; the baseline sits ascent below its top
-        const asc = m.fontBoundingBoxAscent, des = m.fontBoundingBoxDescent;
-        const base = b.top + (b.height - (asc + des)) / 2 + asc;
-        o.fillText(n.textContent, b.left - r.left, base - r.top);
+        // word by word, each at its own spot, so the copy follows the real line breaks
+        const t = n.textContent;
+        let i = 0;
+        for (const word of t.split(/(\s+)/)) {
+          if (word.trim()) {
+            rg.setStart(n, i); rg.setEnd(n, i + word.length);
+            const b = rg.getClientRects()[0];
+            if (b) {
+              // the word's box spans the font's ascent + descent; the baseline sits ascent below its top
+              const base = b.top + (b.height - (asc + des)) / 2 + asc;
+              o.fillText(word, b.left - r.left, base - r.top);
+            }
+          }
+          i += word.length;
+        }
       }
       so.clearRect(0, 0, W, H);
       so.drawImage(big, 0, 0, W, H);
