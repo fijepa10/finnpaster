@@ -8,29 +8,34 @@
   document.querySelectorAll('.age').forEach(el => { el.textContent = age; });
 }
 
-// every refresh starts at the very top (the browser would otherwise jump back to where you were).
-// Following a link to a section, like "index.html#photos", still goes to that section.
+// where the page opens:
+//  - refresh: always the very top
+//  - back / forward (e.g. swiping back from the photos page): exactly where you were
+//  - a link to a section, like "index.html#photos": that section
+// The browser's own scroll restoring is turned off (it would also restore on refresh), so the
+// page remembers its own scroll position each time you leave it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 {
   const nav = performance.getEntriesByType('navigation')[0];
-  const reload = nav && nav.type === 'reload';
-  if (reload && location.hash) history.replaceState(null, '', location.pathname + location.search);
-  if (reload || !location.hash) {
-    const top = () => { document.documentElement.style.scrollBehavior = 'auto'; scrollTo(0, 0); document.documentElement.style.scrollBehavior = ''; };
-    // once more when everything has loaded, unless you've already started scrolling yourself
-    let moved = false;
-    const mark = () => { moved = true; };
-    ['wheel', 'touchmove', 'keydown', 'pointerdown'].forEach(t => addEventListener(t, mark, { passive: true, once: true }));
-    top(); addEventListener('load', () => { if (!moved) top(); });
+  const type = nav ? nav.type : 'navigate';
+  const key = 'scroll:' + location.pathname;
+  const jump = y => { document.documentElement.style.scrollBehavior = 'auto'; scrollTo(0, y); document.documentElement.style.scrollBehavior = ''; };
+  addEventListener('pagehide', () => { try { sessionStorage.setItem(key, String(Math.round(scrollY))); } catch {} });
+  // apply the starting position now, again once fonts and images have loaded (the page gets
+  // taller as they arrive) - unless you've already started scrolling yourself
+  let moved = false;
+  ['wheel', 'touchmove', 'keydown', 'pointerdown'].forEach(t => addEventListener(t, () => { moved = true; }, { passive: true, once: true }));
+  const settle = fn => { fn(); document.fonts.ready.then(() => { if (!moved) fn(); }); addEventListener('load', () => { if (!moved) fn(); }); };
+
+  if (type === 'back_forward') {
+    let y = null;
+    try { y = sessionStorage.getItem(key); } catch {}
+    if (y !== null) settle(() => jump(+y));
+  } else if (type === 'reload' || !location.hash) {
+    if (type === 'reload' && location.hash) history.replaceState(null, '', location.pathname + location.search);
+    settle(() => jump(0));
   } else {
-    // arriving from a link to a section: jump straight there once the page has laid out
-    const go = () => {
-      const t = document.querySelector(location.hash);
-      if (!t) return;
-      document.documentElement.style.scrollBehavior = 'auto';
-      t.scrollIntoView();
-      document.documentElement.style.scrollBehavior = '';
-    };
+    const go = () => { const t = document.querySelector(location.hash); if (t) { document.documentElement.style.scrollBehavior = 'auto'; t.scrollIntoView(); document.documentElement.style.scrollBehavior = ''; } };
     addEventListener('load', () => document.fonts.ready.then(go));
   }
 }
@@ -428,7 +433,7 @@ const melt = (() => {
   const c = intro.querySelector('.melt');
   const ctx = c.getContext('2d');
   let MD = 2;                         // css px per dot (snapped to whole screen pixels in build)
-  let W, H, src, speed, img, px, ready = false, lastP = -1;
+  let W, H, src, col, speed, img, px, ready = false, lastP = -1;
 
   const build = () => {
     const r = pin.getBoundingClientRect();
@@ -436,19 +441,47 @@ const melt = (() => {
     W = Math.ceil(r.width / MD); H = Math.ceil(r.height / MD);
     c.width = W; c.height = H;
     c.style.width = (W * MD) + 'px'; c.style.height = (H * MD) + 'px';
-    // draw the real text (same font, size and position) into a low-res buffer
-    const off = document.createElement('canvas'); off.width = W; off.height = H;
-    const o = off.getContext('2d');
-    o.textAlign = 'center'; o.textBaseline = 'middle';
+    // draw the real text exactly where the page draws it (same font, size, colour and baseline),
+    // sharp at full screen resolution, then shrink it to the dot grid
+    const S = Math.max(1, devicePixelRatio);
+    const rg = document.createRange();
+    const small = document.createElement('canvas'); small.width = W; small.height = H;
+    const so = small.getContext('2d', { willReadFrequently: true });
+    so.imageSmoothingQuality = 'high';
+    src = new Float32Array(W * H);                // how much of each dot is covered by ink
+    col = new Uint32Array(W * H);                 // and what colour that ink is
     for (const el of text.children) {
-      const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
-      o.font = `${parseFloat(cs.fontSize) / MD}px "Finn Hand"`;
+      const big = document.createElement('canvas'); big.width = Math.ceil(W * MD * S); big.height = Math.ceil(H * MD * S);
+      const o = big.getContext('2d');
+      o.setTransform(S, 0, 0, S, 0, 0);
+      o.textAlign = 'left'; o.textBaseline = 'alphabetic';
+      const cs = getComputedStyle(el);
+      o.font = `${cs.fontSize} "Finn Hand"`;
       o.fillStyle = cs.color;
-      o.fillText(el.textContent, (b.left + b.width / 2 - r.left) / MD, (b.top + b.height / 2 - r.top) / MD);
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        rg.selectNodeContents(n);
+        const b = rg.getBoundingClientRect(), m = o.measureText(n.textContent);
+        // the text's box spans the font's ascent + descent; the baseline sits ascent below its top
+        const asc = m.fontBoundingBoxAscent, des = m.fontBoundingBoxDescent;
+        const base = b.top + (b.height - (asc + des)) / 2 + asc;
+        o.fillText(n.textContent, b.left - r.left, base - r.top);
+      }
+      so.clearRect(0, 0, W, H);
+      so.drawImage(big, 0, 0, W, H);
+      const d = so.getImageData(0, 0, W, H).data;
+      // big text: sharpen the edges so the dots keep the letters' real thickness;
+      // small text: strokes are only a dot or two wide, so let the dots average out to the real weight
+      const sharp = parseFloat(cs.fontSize) >= 48;
+      for (let i = 0; i < src.length; i++) {
+        const a = d[i * 4 + 3] / 255;
+        if (!a) continue;
+        const v = sharp ? Math.min(1, Math.max(0, (a - 0.3) / 0.4)) : a * 0.85;
+        if (v <= src[i]) continue;
+        src[i] = v;
+        col[i] = 0xff000000 | (d[i * 4 + 2] << 16) | (d[i * 4 + 1] << 8) | d[i * 4];   // the ink's real colour
+      }
     }
-    const d = o.getImageData(0, 0, W, H).data;
-    src = new Float32Array(W * H);
-    for (let i = 0; i < src.length; i++) src[i] = (d[i * 4] / 255) * (d[i * 4 + 3] / 255);
     // each column melts at its own speed (smooth random), so the letters drip unevenly
     speed = new Float32Array(W);
     const ph = [Math.random() * 6, Math.random() * 6, Math.random() * 6];
@@ -465,16 +498,17 @@ const melt = (() => {
   const draw = p => {
     const e = Math.pow(p, 2.2);          // starts gently, speeds up near the end
     const fade = 1 - Math.pow(p, 1.6);   // dither thins out slowly
+    const grow = Math.min(1, p / 0.06);  // drips start from nothing, so the first frames match the real text
     for (let x = 0; x < W; x++) {
       const d = Math.round(e * Math.max(0.15, speed[x]) * H * 0.9);  // how far this column has risen
-      const decay = 1 - 1 / (1.5 + e * 45 * speed[x]);                 // trail length grows as it melts
-      let trail = 0;
+      const decay = (1 - 1 / (1.5 + e * 45 * speed[x])) * grow;       // trail length grows as it melts
+      let trail = 0, tc = 0xffffffff;
       for (let y = 0; y < H; y++) {
         const sy = y + d;
         const v = sy < H ? src[sy * W + x] : 0;
-        trail = Math.max(v, trail * decay);                             // drip trails left below the letters
+        if (v >= trail * decay) { trail = v; if (v > 0) tc = col[sy * W + x]; } else trail *= decay;   // drip trails left below the letters
         const i = y * W + x;
-        px[i] = trail * fade > BAYER[((y & 7) << 3) | (x & 7)] ? 0xffffffff : 0;
+        px[i] = trail * fade > BAYER[((y & 7) << 3) | (x & 7)] ? tc : 0;
       }
     }
     ctx.putImageData(img, 0, 0);
@@ -488,10 +522,12 @@ const melt = (() => {
     cue.style.opacity = String(Math.max(0, 1 - p * 5));
     if (!ready || Math.abs(p - lastP) < 0.002) return;
     lastP = p;
-    // crisp real text at rest; hand over to the dithered canvas as soon as it moves
-    text.style.opacity = p < 0.004 ? '1' : '0';
-    c.style.opacity = p < 0.004 ? '0' : '1';
-    if (p >= 0.004 && p < 1) draw(p);
+    // crisp real text at rest; as you start scrolling it cross-fades into the dotted copy,
+    // which sits exactly on top of it, so there's no jump
+    const h = Math.min(1, Math.max(0, (p - 0.002) / 0.03));
+    text.style.opacity = String(1 - h);
+    c.style.opacity = String(h);
+    if (p >= 0.002 && p < 1) draw(p);
     if (p >= 1) ctx.clearRect(0, 0, W, H);
   };
 
