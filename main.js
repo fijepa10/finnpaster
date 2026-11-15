@@ -41,6 +41,23 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 }
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// how fast the page is scrolling (px per second, smoothed). Photos dissolve to colour at their
+// normal pace when you scroll slowly, and faster the faster you scroll, so you still see colour.
+let scrollSpeed = 0;
+{
+  let lastY = scrollY, lastT = performance.now();
+  addEventListener('scroll', () => {
+    const now = performance.now(), dt = Math.max(1, now - lastT);
+    const v = Math.abs(scrollY - lastY) / dt * 1000;
+    scrollSpeed = scrollSpeed * 0.6 + v * 0.4;
+    lastY = scrollY; lastT = now;
+  }, { passive: true });
+  // ease back to zero once scrolling stops
+  setInterval(() => { if (performance.now() - lastT > 120) scrollSpeed *= 0.5; }, 100);
+}
+// 0.3s when still or slow (under ~400 px/s), down to 0.06s when flicking fast
+const dissolveTime = () => Math.max(0.06, 0.3 / (1 + Math.max(0, scrollSpeed - 400) / 500));
 const DOT = 2; // css px per dither dot
 // the size of a dot snapped to whole screen pixels, so dots stay even and crisp at any zoom level
 const dotPx = css => Math.max(1, Math.round(css * devicePixelRatio)) / devicePixelRatio;
@@ -196,7 +213,7 @@ class Photo {
     const step = now => {
       const dt = (now - last) / 1000; last = now;
       const dir = Math.sign(this.target - this.t);
-      this.t = Math.min(1, Math.max(0, this.t + dir * dt / 0.3));  // ~0.3s dissolve
+      this.t = Math.min(1, Math.max(0, this.t + dir * dt / dissolveTime()));  // ~0.3s, quicker when scrolling fast
       this.paint();
       if (this.t !== this.target) this.raf = requestAnimationFrame(step);
     };
@@ -323,8 +340,9 @@ document.querySelectorAll('.shot').forEach(f => f.addEventListener('click', () =
 const lazy = new IntersectionObserver(es => es.forEach(e => {
   if (!e.isIntersecting) return;
   lazy.unobserve(e.target);
-  photos.find(p => p.fig === e.target)?.build();
-}), { rootMargin: '600px 0px' });
+  const p = photos.find(p => p.fig === e.target);
+  if (p) { p.img.loading = 'eager'; p.build(); }       // start downloading now, not when it's on screen
+}), { rootMargin: '2000px 0px' });
 photos.forEach(p => lazy.observe(p.fig));
 
 // as you scroll, the photos in the middle of the screen turn to colour by themselves (no hover
@@ -334,10 +352,11 @@ const bandBottom = () => {
   const n = document.querySelector('.nav');
   return (n && n.classList.contains('show') ? n.getBoundingClientRect().height : 0) + topBandHeight();
 };
-// the melting band along the top only runs on computers: on phones and tablets it's too heavy to
-// keep up with fast (momentum) scrolling, and Safari moves the page before it can follow
 const touch = matchMedia('(hover: none)').matches || innerWidth <= 640;
-const topBandHeight = () => touch ? 0 : Math.round(document.documentElement.clientHeight * 0.12);
+// the melting band along the top runs everywhere except the all-photos page on phones/tablets
+// (a long page you flick through fast, where it can't keep up)
+const noBand = touch && !!document.querySelector('.all-photos');
+const topBandHeight = () => noBand ? 0 : Math.round(document.documentElement.clientHeight * (innerWidth <= 640 ? 0.07 : 0.12));
 {
   let q = false;
   const many = !!document.querySelector('.all-photos');
@@ -356,19 +375,13 @@ const topBandHeight = () => touch ? 0 : Math.round(document.documentElement.clie
     // lights up (several rows at once); elsewhere just the row nearest the middle
     const reach = many ? (bottom - top) * 0.3 : 0;
     let on = new Set(seen.filter(([, d]) => d <= Math.max(bd + 40, reach)).map(([p]) => p));
-    // phones (one photo per row): the photo in the middle of the screen is in colour, always
-    // exactly one, so whatever you're looking at is in colour. (It melts away in its own colours
-    // at the top, so it doesn't need to turn back into dots first.)
+    // phones (one photo per row): every photo that's at least half on screen is in colour, so you
+    // still see colour while flicking through quickly (they melt away in colour at the top)
     if (innerWidth <= 640) {
-      const mid = (bandBottom() + innerHeight) / 2;
-      let best = null, bd = Infinity;
-      for (const p of photos) {
+      on = new Set(photos.filter(p => {
         const r = p.fig.getBoundingClientRect();
-        if (!r.height || r.bottom < 0 || r.top > innerHeight) continue;
-        const d = mid < r.top ? r.top - mid : mid > r.bottom ? mid - r.bottom : 0;   // 0 = it covers the middle
-        if (d < bd) { bd = d; best = p; }
-      }
-      on = new Set(best && bd < innerHeight * 0.25 ? [best] : []);
+        return r.height && Math.min(r.bottom, innerHeight) - Math.max(r.top, bandBottom()) >= r.height * 0.5;
+      }));
     }
     for (const p of photos) {
       const lit = on.has(p);
@@ -427,7 +440,7 @@ addEventListener('resize', () => {
 const io = new IntersectionObserver(es => es.forEach(e => {
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
 }), { threshold: 0.12 });
-document.querySelectorAll('section > *:not(.grid), .grid > .ph').forEach(el => {
+document.querySelectorAll('section > *:not(.grid)').forEach(el => {
   el.classList.add('reveal'); io.observe(el);
 });
 
@@ -571,7 +584,7 @@ const melt = (() => {
   const back = document.querySelector('.top-back');
   const clean = document.querySelector('.top-clean');
   const c = document.querySelector('.top-melt');
-  if (!c || !clean || reduceMotion || touch) return;   // computers only (see `touch` above)
+  if (!c || !clean || reduceMotion || noBand) return;   // (see `noBand` above)
   const ctx = c.getContext('2d');
   const cx = clean.getContext('2d');
   let D = 1;                                     // css px per dither dot (fine, so body text stays legible; snapped in build)
@@ -715,8 +728,12 @@ const melt = (() => {
     const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     // ease the whole effect in when it turns on, and out when it turns off
     amp = Math.max(0, Math.min(1, amp + (active ? dt : -dt) / 0.9));
-    const showing = amp > 0;
-    for (const el of [back, clean, c]) el.classList.toggle('on', showing);
+    // on phones, Safari moves the page by itself during a fast flick, before this code can follow,
+    // which would leave the band floating mid-screen: so hide it while flicking, back when slower
+    const flicking = touch && scrollSpeed > 900;
+    c.style.visibility = flicking ? 'hidden' : '';
+    const showing = amp > 0 && !flicking;
+    for (const el of [back, clean, c]) el.classList.toggle('on', amp > 0);
     if (!showing) { ctx.clearRect(0, 0, W, H); }
     if (showing && !img) build();                                // wasn't laid out yet at start
     if (showing && img) {
@@ -727,7 +744,7 @@ const melt = (() => {
       const K = 0.35;                                            // lower part of the band shows the real page
       for (let x = 0; x < W; x++) {
         // margin rows (under the nav): solid black
-        for (let y = 0; y < Mr; y++) { const i = y * W + x; px[i] = R[i] > a ? 0 : 0xff000000; }
+        for (let y = 0; y < Mr; y++) px[y * W + x] = 0;   // rows tucked under the menu: see-through, so a fast scroll up never shows a black bar
         const s = speed[x] * (0.85 + 0.15 * Math.sin(t * 0.9 + x * 0.07));
         let trail = 0, tc = 0xffffffff;
         const decay = 0.8 + 0.12 * Math.min(1, s);              // short trails: drips, not bars
@@ -749,7 +766,13 @@ const melt = (() => {
       ctx.putImageData(img, 0, 0);
       // attach the canvas to the page at the spot this content came from, so if the page
       // scrolls on before the next frame, the melt moves with it instead of lagging behind
-      c.style.top = (sy0 + bandTop - M) + 'px';
+      if (touch) {
+        // phones: pinned to the screen, so it can never be left behind mid-page when Safari
+        // scrolls on its own during a flick
+        c.style.position = 'fixed'; c.style.top = (bandTop - M) + 'px';
+      } else {
+        c.style.top = (sy0 + bandTop - M) + 'px';
+      }
     }
     if (running) raf = requestAnimationFrame(frame);
   };
