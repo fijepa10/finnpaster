@@ -279,6 +279,33 @@ class Photo {
   });
 })();
 
+// ---------- contact form: sends without leaving the page ----------
+(() => {
+  const form = document.querySelector('.contact-form');
+  if (!form) return;
+  const status = form.querySelector('.form-status'), btn = form.querySelector('button');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (form._honey.value) return;                     // a bot filled the hidden field
+    btn.disabled = true; status.textContent = 'sending…';
+    try {
+      const res = await fetch('https://formsubmit.co/ajax/finnjp9@icloud.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false || data.success === 'false') throw new Error(data.message || res.status);
+      form.reset();
+      status.textContent = "Sent, thank you! I'll get back to you soon.";
+    } catch {
+      status.innerHTML = 'That didn\u2019t send. Please email me at <a class="inline" href="mailto:finnjp9@icloud.com">finnjp9@icloud.com</a>.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+
 // ---------- full-size viewer: colour, no dither, back / next through the same set ----------
 const viewer = (() => {
   const el = document.querySelector('.viewer');
@@ -295,7 +322,7 @@ const viewer = (() => {
     const src = set[i].querySelector('img');
     // fully load + decode the next photo before swapping, so Safari never shows the old one
     // underneath a half-drawn new one
-    const url = src.currentSrc || src.src, want = ++token;
+    const url = src.dataset.full || src.currentSrc || src.src, want = ++token;   // always the full-size version
     const pre = new Image(); pre.src = url;
     const ready = (pre.decode ? pre.decode() : Promise.resolve()).catch(() => {});
     const faded = animate ? new Promise(r => { img.classList.add('swap'); setTimeout(r, 180); }) : Promise.resolve();
@@ -308,7 +335,7 @@ const viewer = (() => {
     });
     count.textContent = `${i + 1} / ${set.length}` + (set[i].dataset.cam ? `  ·  ${set[i].dataset.cam}` : '');
     // warm up the neighbours so back / next feel instant
-    [i - 1, i + 1].forEach(k => { const f = set[(k + set.length) % set.length]; if (f) new Image().src = f.querySelector('img').src; });
+    [i - 1, i + 1].forEach(k => { const f = set[(k + set.length) % set.length]; if (f) { const im = f.querySelector('img'); new Image().src = im.dataset.full || im.src; } });
   };
   const open = fig => {
     set = [...fig.parentElement.querySelectorAll('.ph, .shot')].filter(f => getComputedStyle(f).display !== 'none');
@@ -611,7 +638,7 @@ const melt = (() => {
   let W, H, Hb, Mr, Hpx, dpr, img, px, L, C, P, R, speed, raf = 0, running = true, active = false, amp = 0, lastT = 0, bandTop = 0;
 
   const items = [...document.querySelectorAll(
-    'main h2, main p, main .links a, main .btns a, main .song-top, main .video, main .video-soon, main .footer, main .cover, main .portrait, main .drawing, main .ph, main h3, main .project-more, main .project-shots img, main .project-sketch img, main .shot img, main figcaption, main .back')];
+    'main h2, main p, main .links a, main .btns a, main .song-top, main .video, main .video-soon, main .footer, main .cover, main .portrait, main .drawing, main .ph, main h3, main .project-more, main .project-shots img, main .project-sketch img, main .shot img, main figcaption, main .back, main .contact-form label, main .contact-form button')];
 
   const build = () => {
     if (!innerWidth || !document.documentElement.clientHeight) return false;   // window not laid out yet
