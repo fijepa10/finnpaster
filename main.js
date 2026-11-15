@@ -21,22 +21,39 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   const key = 'scroll:' + location.pathname;
   const jump = y => { document.documentElement.style.scrollBehavior = 'auto'; scrollTo(0, y); document.documentElement.style.scrollBehavior = ''; };
   addEventListener('pagehide', () => { try { sessionStorage.setItem(key, String(Math.round(scrollY))); } catch {} });
+  // Safari sometimes keeps the whole page in memory and shows it again on back: keep it where you were
+  addEventListener('pageshow', e => {
+    if (!e.persisted) return;
+    let y = null;
+    try { y = sessionStorage.getItem(key); } catch {}
+    if (y !== null) jump(+y);
+  });
   // apply the starting position now, again once fonts and images have loaded (the page gets
   // taller as they arrive) - unless you've already started scrolling yourself
   let moved = false;
   ['wheel', 'touchmove', 'keydown', 'pointerdown'].forEach(t => addEventListener(t, () => { moved = true; }, { passive: true, once: true }));
   const settle = fn => { fn(); document.fonts.ready.then(() => { if (!moved) fn(); }); addEventListener('load', () => { if (!moved) fn(); }); };
 
-  if (type === 'back_forward') {
-    let y = null;
-    try { y = sessionStorage.getItem(key); } catch {}
-    if (y !== null) settle(() => jump(+y));
-  } else if (type === 'reload' || !location.hash) {
-    if (type === 'reload' && location.hash) history.replaceState(null, '', location.pathname + location.search);
+  let saved = null;
+  try { saved = sessionStorage.getItem(key); } catch {}
+  if (type === 'reload') {
+    // refresh: always the very top
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     settle(() => jump(0));
-  } else {
+  } else if (type === 'back_forward' && saved !== null) {
+    // back / forward: exactly where you were
+    settle(() => jump(+saved));
+  } else if (location.hash) {
+    // a link to a section, like "index.html#photos": that section
     const go = () => { const t = document.querySelector(location.hash); if (t) { document.documentElement.style.scrollBehavior = 'auto'; t.scrollIntoView(); document.documentElement.style.scrollBehavior = ''; } };
     addEventListener('load', () => document.fonts.ready.then(go));
+  } else if (saved !== null) {
+    // coming back to a page you've already seen in this tab (iPhone Safari sometimes reports a
+    // swipe back as a new visit): where you were
+    settle(() => jump(+saved));
+  } else {
+    // first visit: the top
+    settle(() => jump(0));
   }
 }
 
